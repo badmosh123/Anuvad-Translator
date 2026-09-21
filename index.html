@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anuvad — Translate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #23303B;
+    --ink-soft: #5B6B75;
+    --paper: #F1EFE8;
+    --paper-raised: #FAF9F5;
+    --rule: #D8D3C6;
+    --gold: #B08A3E;
+    --gold-soft: #E4D9BC;
+    --focus: #2B5F73;
+    --danger: #A0463A;
+    --radius: 3px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ink: #E9E6DD;
+      --ink-soft: #A9B3B9;
+      --paper: #1B211F;
+      --paper-raised: #232A28;
+      --rule: #3A423E;
+      --gold: #D4B36A;
+      --gold-soft: #3B3423;
+      --focus: #6FB6CE;
+      --danger: #E08A7B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #E9E6DD;
+    --ink-soft: #A9B3B9;
+    --paper: #1B211F;
+    --paper-raised: #232A28;
+    --rule: #3A423E;
+    --gold: #D4B36A;
+    --gold-soft: #3B3423;
+    --focus: #6FB6CE;
+    --danger: #E08A7B;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 100% 42px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 120px, black calc(100% - 60px), transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 120px, black calc(100% - 60px), transparent);
+  }
+
+  header {
+    padding: 28px clamp(16px, 4vw, 48px) 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    position: relative;
+    z-index: 2;
+  }
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(24px, 3vw, 30px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .wordmark span.script {
+    color: var(--gold);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 0.72em;
+  }
+  .tagline {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  main {
+    flex: 1;
+    padding: 8px clamp(16px, 4vw, 48px) 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .lang-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 980px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .lang-select-wrap {
+    flex: 1;
+    position: relative;
+  }
+  select.lang-select {
+    width: 100%;
+    appearance: none;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 11px 34px 11px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  select.lang-select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  .lang-select-wrap::after {
+    content: "";
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--ink-soft);
+    border-bottom: 1.5px solid var(--ink-soft);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  button.swap {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--paper-raised);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s ease, border-color 0.15s ease;
+  }
+  button.swap:hover { border-color: var(--gold); color: var(--gold); }
+  button.swap:active { transform: rotate(180deg); }
+  button.swap svg { width: 17px; height: 17px; }
+  button.swap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .spread {
+    max-width: 980px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 320px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  @media (max-width: 720px) {
+    .spread { grid-template-columns: 1fr; }
+    .pane.source { border-bottom: 1px solid var(--rule); }
+    .seam { display: none; }
+  }
+  .pane {
+    padding: 22px clamp(16px, 3vw, 28px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .pane.source { border-right: 1px solid var(--rule); }
+  @media (max-width: 720px) { .pane.source { border-right: none; } }
+
+  .pane-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+    margin-bottom: 12px;
+  }
+
+  textarea#sourceText {
+    flex: 1;
+    resize: none;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    min-height: 180px;
+  }
+  textarea#sourceText:focus { outline: none; }
+  textarea#sourceText::placeholder { color: var(--ink-soft); opacity: 0.55; }
+
+  #targetText {
+    flex: 1;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    min-height: 180px;
+    color: var(--ink);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  #targetText.placeholder { color: var(--ink-soft); opacity: 0.55; }
+  #targetText .cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--gold);
+    vertical-align: text-bottom;
+    animation: blink 0.9s steps(1) infinite;
+    margin-left: 1px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .pane-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    gap: 10px;
+  }
+  .char-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .icon-row { display: flex; gap: 6px; }
+  button.icon-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--ink-soft);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  button.icon-btn svg { width: 16px; height: 16px; }
+  button.icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--rule); background: var(--paper); }
+  button.icon-btn:disabled { opacity: 0.35; cursor: default; }
+  button.icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button.icon-btn.confirmed { color: var(--gold); }
+
+  .seam {
+    position: relative;
+  }
+  .seam::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+  }
+
+  .status-line {
+    max-width: 980px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-line.error { color: var(--danger); }
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+  footer {
+    text-align: center;
+    padding: 6px 16px 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    opacity: 0.7;
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+
+<header>
+  <div class="wordmark">Anuvad <span class="script">translate, plainly</span></div>
+  <div class="tagline" id="clockTag"></div>
+</header>
+
+<main>
+  <div class="lang-bar">
+    <div class="lang-select-wrap">
+      <select id="sourceLang" class="lang-select" aria-label="Source language"></select>
+    </div>
+    <button class="swap" id="swapBtn" aria-label="Swap languages" title="Swap languages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 10 3 6l4-4"/><path d="M3 6h13a4 4 0 0 1 4 4v1"/>
+        <path d="M17 14l4 4-4 4"/><path d="M21 18H8a4 4 0 0 1-4-4v-1"/>
+      </svg>
+    </button>
+    <div class="lang-select-wrap">
+      <select id="targetLang" class="lang-select" aria-label="Target language"></select>
+    </div>
+  </div>
+
+  <div class="spread">
+    <div class="pane source">
+      <div class="pane-label">SOURCE</div>
+      <textarea id="sourceText" placeholder="Type or paste text to translate…" autofocus></textarea>
+      <div class="pane-footer">
+        <span class="char-count" id="srcCount">0 characters</span>
+        <div class="icon-row">
+          <button class="icon-btn" id="listenSrcBtn" aria-label="Listen to source text" title="Listen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+          <button class="icon-btn" id="clearBtn" aria-label="Clear text" title="Clear">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="seam"></div>
+    <div class="pane target">
+      <div class="pane-label">TRANSLATION</div>
+      <div id="targetText" class="placeholder">Your translation will appear here.</div>
+      <div class="pane-footer">
+        <span class="char-count" id="tgtCount"></span>
+        <div class="icon-row">
+          <button class="icon-btn" id="listenTgtBtn" aria-label="Listen to translation" title="Listen" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+          <button class="icon-btn" id="copyBtn" aria-label="Copy translation" title="Copy" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+</main>
+
+<footer>Free translation via MyMemory — quality and quota are limited on the free tier.</footer>
+
+<script>
+  // value = ISO-639-1 code MyMemory expects, label = display name
+  const LANGUAGES = [
+    ["en", "English"],
+    ["hi", "Hindi"],
+    ["es", "Spanish"],
+    ["fr", "French"],
+    ["de", "German"],
+    ["pt", "Portuguese"],
+    ["it", "Italian"],
+    ["ru", "Russian"],
+    ["ja", "Japanese"],
+    ["ko", "Korean"],
+    ["zh-CN", "Chinese (Simplified)"],
+    ["ar", "Arabic"],
+    ["bn", "Bengali"],
+    ["ta", "Tamil"],
+    ["te", "Telugu"],
+    ["mr", "Marathi"],
+    ["gu", "Gujarati"],
+    ["pa", "Punjabi"],
+    ["ur", "Urdu"],
+    ["tr", "Turkish"],
+    ["vi", "Vietnamese"],
+    ["id", "Indonesian"],
+    ["nl", "Dutch"],
+    ["pl", "Polish"],
+    ["th", "Thai"],
+  ];
+
+  const SPEECH_LOCALE = {
+    "en": "en-US", "hi": "hi-IN", "es": "es-ES", "fr": "fr-FR",
+    "de": "de-DE", "pt": "pt-PT", "it": "it-IT", "ru": "ru-RU",
+    "ja": "ja-JP", "ko": "ko-KR", "zh-CN": "zh-CN",
+    "ar": "ar-SA", "bn": "bn-IN", "ta": "ta-IN", "te": "te-IN",
+    "mr": "mr-IN", "gu": "gu-IN", "pa": "pa-IN", "ur": "ur-IN",
+    "tr": "tr-TR", "vi": "vi-VN", "id": "id-ID",
+    "nl": "nl-NL", "pl": "pl-PL", "th": "th-TH",
+  };
+
+  // MyMemory's free tier caps a single request around ~500 bytes of text.
+  // Longer input is split on sentence boundaries and translated in chunks,
+  // then stitched back together.
+  const MAX_CHUNK_CHARS = 450;
+
+  function splitIntoChunks(text) {
+    const sentences = text.match(/[^.!?\n]+[.!?\n]*|[^.!?\n]+$/g) || [text];
+    const chunks = [];
+    let current = "";
+    for (const s of sentences) {
+      if ((current + s).length > MAX_CHUNK_CHARS && current) {
+        chunks.push(current);
+        current = s;
+      } else {
+        current += s;
+      }
+    }
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
+  async function translateChunk(text, sourceCode, targetCode) {
+    const langpair = encodeURIComponent(`${sourceCode}|${targetCode}`);
+    const q = encodeURIComponent(text);
+    const url = `https://api.mymemory.translated.net/get?q=${q}&langpair=${langpair}`;
+    const res = await fetch(url);
+    if (!res.ok) throw { code: "network_error" };
+    const data = await res.json();
+    if (data.responseStatus && Number(data.responseStatus) !== 200) {
+      throw { code: "api_error", message: data.responseDetails };
+    }
+    if (data.quotaFinished) {
+      throw { code: "quota" };
+    }
+    return (data.responseData && data.responseData.translatedText) || "";
+  }
+
+  const sourceLangSel = document.getElementById("sourceLang");
+  const targetLangSel = document.getElementById("targetLang");
+  const sourceText = document.getElementById("sourceText");
+  const targetText = document.getElementById("targetText");
+  const srcCount = document.getElementById("srcCount");
+  const tgtCount = document.getElementById("tgtCount");
+  const statusLine = document.getElementById("statusLine");
+  const swapBtn = document.getElementById("swapBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const copyBtn = document.getElementById("copyBtn");
+  const listenSrcBtn = document.getElementById("listenSrcBtn");
+  const listenTgtBtn = document.getElementById("listenTgtBtn");
+  const clockTag = document.getElementById("clockTag");
+
+  LANGUAGES.forEach(([val, label]) => {
+    const o1 = document.createElement("option"); o1.value = val; o1.textContent = label;
+    sourceLangSel.appendChild(o1);
+    const o2 = document.createElement("option"); o2.value = val; o2.textContent = label;
+    targetLangSel.appendChild(o2);
+  });
+  sourceLangSel.value = "en";
+  targetLangSel.value = "hi";
+
+  function updateClock() {
+    const now = new Date();
+    clockTag.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  function setStatus(msg, isError) {
+    statusLine.textContent = msg || "";
+    statusLine.classList.toggle("error", !!isError);
+  }
+
+  function setBusy(isBusy) {
+    if (isBusy) {
+      statusLine.innerHTML = '<span class="dot"></span> Translating…';
+      statusLine.classList.remove("error");
+    }
+  }
+
+  let debounceTimer = null;
+  let requestSeq = 0;
+
+  sourceText.addEventListener("input", () => {
+    srcCount.textContent = sourceText.value.length + " characters";
+    clearTimeout(debounceTimer);
+    if (!sourceText.value.trim()) {
+      resetTarget();
+      return;
+    }
+    debounceTimer = setTimeout(runTranslation, 550);
+  });
+
+  sourceLangSel.addEventListener("change", () => { if (sourceText.value.trim()) runTranslation(); });
+  targetLangSel.addEventListener("change", () => { if (sourceText.value.trim()) runTranslation(); });
+
+  function resetTarget() {
+    targetText.textContent = "Your translation will appear here.";
+    targetText.classList.add("placeholder");
+    tgtCount.textContent = "";
+    copyBtn.disabled = true;
+    listenTgtBtn.disabled = true;
+    setStatus("");
+  }
+
+  async function runTranslation() {
+    const text = sourceText.value.trim();
+    if (!text) { resetTarget(); return; }
+
+    const sourceCode = sourceLangSel.value;
+    const targetCode = targetLangSel.value;
+    if (sourceCode === targetCode) {
+      targetText.textContent = text;
+      targetText.classList.remove("placeholder");
+      tgtCount.textContent = text.length + " characters";
+      copyBtn.disabled = false;
+      listenTgtBtn.disabled = false;
+      setStatus("Source and target are the same language.");
+      return;
+    }
+
+    const mySeq = ++requestSeq;
+    setBusy(true);
+
+    try {
+      const chunks = splitIntoChunks(text);
+      const translatedChunks = [];
+      for (const chunk of chunks) {
+        if (mySeq !== requestSeq) return; // superseded by a newer request
+        const piece = await translateChunk(chunk, sourceCode, targetCode);
+        translatedChunks.push(piece);
+      }
+      if (mySeq !== requestSeq) return;
+
+      const translated = translatedChunks.join(" ").trim();
+      if (!translated) {
+        setStatus("No translation returned — try again.", true);
+        return;
+      }
+      targetText.textContent = translated;
+      targetText.classList.remove("placeholder");
+      tgtCount.textContent = translated.length + " characters";
+      copyBtn.disabled = false;
+      listenTgtBtn.disabled = false;
+      setStatus(chunks.length > 1 ? `Translated in ${chunks.length} parts.` : "");
+    } catch (err) {
+      if (mySeq !== requestSeq) return;
+      const code = err && err.code;
+      if (code === "quota") {
+        setStatus("Daily free translation quota reached — try again tomorrow, or add an email param to raise it (see README).", true);
+      } else if (code === "network_error") {
+        setStatus("Network error reaching the translation service. Check your connection.", true);
+      } else {
+        setStatus("Couldn't translate that just now — please try again.", true);
+      }
+    }
+  }
+
+  swapBtn.addEventListener("click", () => {
+    const s = sourceLangSel.value, t = targetLangSel.value;
+    sourceLangSel.value = t;
+    targetLangSel.value = s;
+    const currentTranslation = !targetText.classList.contains("placeholder") ? targetText.textContent : "";
+    if (currentTranslation) {
+      sourceText.value = currentTranslation;
+      srcCount.textContent = sourceText.value.length + " characters";
+      runTranslation();
+    }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    sourceText.value = "";
+    srcCount.textContent = "0 characters";
+    sourceText.focus();
+    resetTarget();
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    const text = targetText.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.classList.add("confirmed");
+      const original = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+      setTimeout(() => { copyBtn.innerHTML = original; copyBtn.classList.remove("confirmed"); }, 1400);
+    } catch (e) {
+      setStatus("Couldn't copy — your browser may be blocking clipboard access.", true);
+    }
+  });
+
+  function speak(text, langLabel) {
+    if (!("speechSynthesis" in window) || !text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = SPEECH_LOCALE[langLabel] || "en-US";
+    window.speechSynthesis.speak(utter);
+  }
+
+  listenSrcBtn.addEventListener("click", () => {
+    speak(sourceText.value, sourceLangSel.value);
+  });
+  listenTgtBtn.addEventListener("click", () => {
+    speak(targetText.textContent, targetLangSel.value);
+  });
+
+  if (!("speechSynthesis" in window)) {
+    listenSrcBtn.style.display = "none";
+    listenTgtBtn.style.display = "none";
+  }
+</script>
+</body>
+</html>
